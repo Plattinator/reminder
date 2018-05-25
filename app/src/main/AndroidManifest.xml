@@ -19,7 +19,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".CreateItemActivity" />
+        <activity
+            android:name=".CreateItemActivity"
+            android:label="@string/create_activity_label">
+        </activity>
     </application>
 
 </manifest>

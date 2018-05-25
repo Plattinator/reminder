@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         mMainRecyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(this);
         mMainRecyclerView.setLayoutManager(mLayoutManager);
-        ReminderItem[] reminderItems = {new ReminderItem("A"), new ReminderItem("This")};
+        ReminderItem[] reminderItems = {new ReminderItem(), new ReminderItem()};
         mAdapter = new ReminderItemAdapter(reminderItems);
         mMainRecyclerView.setAdapter(mAdapter);
     }
