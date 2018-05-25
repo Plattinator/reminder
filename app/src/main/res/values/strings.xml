@@ -7,4 +7,6 @@
     <string name="frequency">Frequency</string>
     <string name="date">Date</string>
     <string name="time">Time</string>
+    <string name="pick_date">Pick a date…</string>
+    <string name="pick_time">Pick a time…</string>
 </resources>
