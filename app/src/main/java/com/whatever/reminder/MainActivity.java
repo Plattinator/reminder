@@ -1,6 +1,8 @@
 package com.whatever.reminder;
 
+import android.arch.persistence.room.Room;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -15,8 +17,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Usage based on example from https://developer.android.com/guide/topics/ui/layout/recyclerview
     private RecyclerView mMainRecyclerView;
-    private LinearLayoutManager mLayoutManager;
-    private ReminderItemAdapter mAdapter;
+    private AppDatabase mDatabase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,11 +38,51 @@ public class MainActivity extends AppCompatActivity {
 
         mMainRecyclerView = findViewById(R.id.main_recycler_view);
         mMainRecyclerView.setHasFixedSize(true);
-        mLayoutManager = new LinearLayoutManager(this);
-        mMainRecyclerView.setLayoutManager(mLayoutManager);
-        ReminderItem[] reminderItems = {new ReminderItem(), new ReminderItem()};
-        mAdapter = new ReminderItemAdapter(reminderItems);
-        mMainRecyclerView.setAdapter(mAdapter);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        mMainRecyclerView.setLayoutManager(layoutManager);
+
+        mDatabase = Room.databaseBuilder(
+                getApplicationContext(), AppDatabase.class, "reminder-database").build();
+        ReminderItemDao reminderItemDao = mDatabase.reminderItemDao();
+
+        new LoadAllReminderItemsAsyncTask(reminderItemDao, new LoadAllReminderItemsAsyncTask.ResultListener() {
+            @Override
+            public void Result(ReminderItem[] reminderItems) {
+                mMainRecyclerView.setAdapter(new ReminderItemAdapter(reminderItems));
+            }
+        }).execute();
+    }
+
+    private static class LoadAllReminderItemsAsyncTask extends AsyncTask<Void, Void, ReminderItem[]> {
+
+        private final ReminderItemDao mReminderItemDao;
+        private final ResultListener mResultListener;
+
+        LoadAllReminderItemsAsyncTask(ReminderItemDao reminderItemDao, ResultListener resultListener) {
+            mReminderItemDao = reminderItemDao;
+            mResultListener = resultListener;
+        }
+
+        @Override
+        protected ReminderItem[] doInBackground(Void... voids) {
+            return mReminderItemDao.loadAllReminderItems();
+        }
+
+        @Override
+        protected void onPostExecute(ReminderItem[] reminderItems) {
+            mResultListener.Result(reminderItems);
+        }
+
+        public interface ResultListener {
+            void Result(ReminderItem[] reminderItems);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        mDatabase.close();
     }
 
     @Override
