@@ -2,6 +2,7 @@ package com.whatever.reminder;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -20,10 +21,10 @@ import java.util.Locale;
 
 public class CreateItemActivity extends AppCompatActivity {
 
-    public OnCreateItemListener createItemListener;
-
     private LocalDate mDate;
     private LocalTime mTime;
+
+    static final String RESULT_KEY = "createdItemResult";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,19 +81,19 @@ public class CreateItemActivity extends AppCompatActivity {
             String message = ((EditText)findViewById(R.id.message_text)).getText().toString();
             LocalDateTime dateTime = LocalDateTime.of(mDate, mTime);
             boolean repeats = ((CheckBox)findViewById(R.id.repeats_checkbox)).isChecked();
-            int repeatValue = Integer.parseInt(((EditText)findViewById(R.id.every_number)).getText().toString());
+            String repeatValueString = ((EditText)findViewById(R.id.every_number)).getText().toString();
+            int repeatValue = repeatValueString.equals("") ? 0 : Integer.parseInt(repeatValueString);
             RepeatUnits repeatUnits = RepeatUnits.values()[((Spinner)findViewById(R.id.every_frequency_unit)).getSelectedItemPosition()];
 
             if (dateTime.isBefore(LocalDateTime.now())) {
                 AlertDialogFragment.show("I can't remind you of something in the past!", getFragmentManager());
             }
             else {
-                createItemListener.onReminderItemCreated(new ReminderItem(message, dateTime, repeats, repeatValue, repeatUnits));
+                Intent intent = new Intent();
+                intent.putExtra(RESULT_KEY, new ReminderItem(message, dateTime, repeats, repeatValue, repeatUnits));
+                setResult(RESULT_OK, intent);
+                finish();
             }
         }
-    }
-
-    public interface OnCreateItemListener {
-        void onReminderItemCreated(ReminderItem reminderItem);
     }
 }

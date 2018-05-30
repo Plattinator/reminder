@@ -11,16 +11,23 @@ public class ReminderItemAdapter extends RecyclerView.Adapter<ReminderItemAdapte
     private ReminderItem[] mDataset;
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        final TextView mTextView;
+        final TextView mMessageTextView;
+        final TextView mDateTimeTextView;
 
         ViewHolder(View view) {
             super(view);
-            mTextView = view.findViewById(R.id.textView);
+            mMessageTextView = view.findViewById(R.id.message_text_view);
+            mDateTimeTextView = view.findViewById(R.id.date_time_text_view);
         }
     }
 
     ReminderItemAdapter(ReminderItem[] dataset) {
         mDataset = dataset;
+    }
+
+    void updateDataset(ReminderItem[] dataset) {
+        mDataset = dataset;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -32,7 +39,8 @@ public class ReminderItemAdapter extends RecyclerView.Adapter<ReminderItemAdapte
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.mTextView.setText(mDataset[position].message);
+        holder.mMessageTextView.setText(mDataset[position].message);
+        holder.mDateTimeTextView.setText(new LocalDateTimeConverter().localDateTimeToString(mDataset[position].dateTime));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.whatever.reminder;
 
 import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -15,9 +16,10 @@ import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Usage based on example from https://developer.android.com/guide/topics/ui/layout/recyclerview
-    private RecyclerView mMainRecyclerView;
+    private ReminderItemAdapter mReminderItemAdapter;
     private AppDatabase mDatabase;
+
+    private static final int CREATE_ITEM_REQUEST = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,23 +34,79 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(mainActivity, CreateItemActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, CREATE_ITEM_REQUEST);
             }
         });
 
-        mMainRecyclerView = findViewById(R.id.main_recycler_view);
-        mMainRecyclerView.setHasFixedSize(true);
+        RecyclerView mainRecyclerView = findViewById(R.id.main_recycler_view);
+        mainRecyclerView.setHasFixedSize(true);
+        mReminderItemAdapter = new ReminderItemAdapter(new ReminderItem[0]);
+        mainRecyclerView.setAdapter(mReminderItemAdapter);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        mMainRecyclerView.setLayoutManager(layoutManager);
+        mainRecyclerView.setLayoutManager(layoutManager);
 
-        mDatabase = Room.databaseBuilder(
-                getApplicationContext(), AppDatabase.class, "reminder-database").build();
+        RoomDatabase.Builder<AppDatabase> builder = Room.databaseBuilder(
+                getApplicationContext(), AppDatabase.class, "reminder-database");
+        builder.fallbackToDestructiveMigration();
+        mDatabase = builder.build();
+
+        ReloadReminderItems();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        mDatabase.close();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case CREATE_ITEM_REQUEST:
+                if (resultCode == RESULT_OK) {
+                    ReminderItem reminderItem = data.getParcelableExtra(CreateItemActivity.RESULT_KEY);
+
+                    new InsertReminderItemsAsyncTask(mDatabase.reminderItemDao(), new InsertReminderItemsAsyncTask.ResultListener() {
+                        @Override
+                        public void Result() {
+                            ReloadReminderItems();
+                        }
+                    }, reminderItem).execute();
+                }
+                break;
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void ReloadReminderItems() {
         ReminderItemDao reminderItemDao = mDatabase.reminderItemDao();
 
         new LoadAllReminderItemsAsyncTask(reminderItemDao, new LoadAllReminderItemsAsyncTask.ResultListener() {
             @Override
             public void Result(ReminderItem[] reminderItems) {
-                mMainRecyclerView.setAdapter(new ReminderItemAdapter(reminderItems));
+                mReminderItemAdapter.updateDataset(reminderItems);
             }
         }).execute();
     }
@@ -78,32 +136,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    private static class InsertReminderItemsAsyncTask extends AsyncTask<Void, Void, Void> {
 
-        mDatabase.close();
-    }
+        private final ReminderItemDao mReminderItemDao;
+        private final ResultListener mResultListener;
+        private final ReminderItem[] mReminderItems;
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        InsertReminderItemsAsyncTask(ReminderItemDao reminderItemDao, ResultListener resultListener, ReminderItem... reminderItems) {
+            mReminderItemDao = reminderItemDao;
+            mResultListener = resultListener;
+            mReminderItems = reminderItems;
         }
 
-        return super.onOptionsItemSelected(item);
+        @Override
+        protected Void doInBackground(Void... voids) {
+            mReminderItemDao.insertReminderItems(mReminderItems);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            mResultListener.Result();
+        }
+
+        public interface ResultListener {
+            void Result();
+        }
     }
 }
