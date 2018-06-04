@@ -16,4 +16,6 @@
         <item>hours</item>
         <item>days</item>
     </string-array>
+    <string name="notification_channel_name">Reminder notification</string>
+    <string name="notification_channel_description">For sending a notification for a reminder item.</string>
 </resources>

@@ -1,11 +1,16 @@
 package com.whatever.reminder;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -20,6 +25,8 @@ public class MainActivity extends AppCompatActivity {
     private AppDatabase mDatabase;
 
     private static final int CREATE_ITEM_REQUEST = 0;
+
+    private static final String NOTIFICATION_CHANNEL_ID = "reminder_notification";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +58,13 @@ public class MainActivity extends AppCompatActivity {
         mDatabase = builder.build();
 
         ReloadReminderItems();
+
+        createNotificationChannel();
+        NotificationCompat.Builder testBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_whatshot_black_24dp)
+                .setContentTitle("Yee");
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(0, testBuilder.build());
     }
 
     @Override
@@ -58,6 +72,19 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
 
         mDatabase.close();
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.notification_channel_name);
+            String description = getString(R.string.notification_channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            assert notificationManager != null;
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     @Override
