@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.whatever.reminder">
 
+    <permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -23,6 +25,9 @@
             android:name=".CreateItemActivity"
             android:label="@string/create_activity_label">
         </activity>
+
+        <receiver android:name=".NotificationPublisher" />
+
     </application>
 
 </manifest>

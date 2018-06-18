@@ -1,13 +1,18 @@
 package com.whatever.reminder;
 
+import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
@@ -19,14 +24,17 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.Calendar;
+import java.util.Date;
+
 public class MainActivity extends AppCompatActivity {
 
     private ReminderItemAdapter mReminderItemAdapter;
     private AppDatabase mDatabase;
 
     private static final int CREATE_ITEM_REQUEST = 0;
-
     private static final String NOTIFICATION_CHANNEL_ID = "reminder_notification";
+    private static final int NOTIFICATION_ID = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,11 +68,28 @@ public class MainActivity extends AppCompatActivity {
         ReloadReminderItems();
 
         createNotificationChannel();
-        NotificationCompat.Builder testBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+
+
+        Context context = getApplicationContext();
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_whatshot_black_24dp)
                 .setContentTitle("Yee");
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(0, testBuilder.build());
+
+        Intent mainActivityIntent = new Intent(context, MainActivity.class);
+        PendingIntent mainActivityPendingIntent = PendingIntent.getActivity(context, NOTIFICATION_ID, mainActivityIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+        notificationBuilder.setContentIntent(mainActivityPendingIntent);
+
+        Notification notification = notificationBuilder.build();
+
+        Intent notificationIntent = new Intent(context, NotificationPublisher.class)
+                .putExtra(NotificationPublisher.NOTIFICATION_ID, NOTIFICATION_ID)
+                .putExtra(NotificationPublisher.NOTIFICATION, notification);
+        PendingIntent notificationPendingIntent = PendingIntent.getBroadcast(context, NOTIFICATION_ID, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 2000, notificationPendingIntent);
     }
 
     @Override
